@@ -1,4 +1,4 @@
-kurigram==2.1.35
+kurigram
 tgcrypto==1.2.5
 py-tgcalls==0.9.7
 yt-dlp
