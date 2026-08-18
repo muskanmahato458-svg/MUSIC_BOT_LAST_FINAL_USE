@@ -1,8 +1,6 @@
 import random
+import html as _html
 
-# Naya "fancy small caps" style — purane plain-smallcaps (ᴀ ɴ ᴏ ᴘ ᴜ ᴍ) se alag,
-# kuch letters Greek/Cyrillic look-alike glyphs use karte hain (ᴧ η σ ᴩ υ ϻ є)
-# jaisa ki reference example mein tha ("ᴛʜᴧηᴋs ғσʀ ᴧᴅᴅɪηɢ" jaisa).
 _SMALLCAPS = {
     "a": "ᴧ", "b": "ʙ", "c": "ᴄ", "d": "ᴅ", "e": "є", "f": "ғ", "g": "ɢ",
     "h": "ʜ", "i": "ɪ", "j": "ᴊ", "k": "ᴋ", "l": "ʟ", "m": "ϻ", "n": "η",
@@ -10,15 +8,8 @@ _SMALLCAPS = {
     "v": "ᴠ", "w": "ᴡ", "x": "x", "y": "ʏ", "z": "ᴢ",
 }
 
-# Processing / "searching" ke waqt dikhne wala random emoji
-PROCESSING_EMOJIS = ["🧪", "🦋", "🔍", "💕"]
-
-# Emoji ke niche dikhne wala random processing text
-PROCESSING_TEXTS = ["HOLD ON DARLING", "OKI BABY W8", "PROCESSING OUR REQUEST BABY"]
-
-# Har bade template (welcome, help, added-to-group, now playing...) ke neeche
-# jaane wala common footer separator — reference style ke hisaab se.
-FOOTER_LINE = "•── ⋅ ⋅  ────── ⋅᯽⋅ ────── ⋅ ⋅ ⋅──•"
+# Processing / "searching" ke waqt dikhne wala random emoji (sirf emoji, koi text nahi)
+PROCESSING_EMOJIS = ["🧪", "🦋", "🔍"]
 
 
 def smallcaps(text: str) -> str:
@@ -54,15 +45,9 @@ def fancy_italic(text: str) -> str:
     return "".join(out)
 
 
-def random_processing_emoji() -> str:
-    """Sirf ek random emoji deta hai — pehle status message isi ek emoji ke saath jaata hai."""
+def random_processing_text() -> str:
+    """Sirf ek random emoji deta hai (3 me se) — koi text nahi."""
     return random.choice(PROCESSING_EMOJIS)
-
-
-def processing_caption(emoji: str) -> str:
-    """Pehle se bheje gaye emoji ke niche ek random processing text jodta hai,
-    bot ki smallcaps style mein (jaise baaki saara text)."""
-    return f"{emoji}\n{smallcaps_title(random.choice(PROCESSING_TEXTS))}"
 
 
 def format_duration(seconds) -> str:
@@ -93,6 +78,26 @@ def duration_to_seconds(duration_str: str) -> int:
     return seconds
 
 
+def esc(text) -> str:
+    """Dynamic text (song title, user name, etc) ko HTML-safe banata hai, taaki
+    blockquote/expandable_blockquote ke andar daalne par `<`/`&` jaise
+    characters formatting todd na de."""
+    return _html.escape(str(text), quote=False)
+
+
+def blockquote(text: str) -> str:
+    """Telegram ka native ' blockquote (quote-style box, chhoti quote-icon
+    ke saath) — jaise screenshot mein 'PLAYBACK ACTIVATED' waala box."""
+    return f"<blockquote>{text}</blockquote>"
+
+
+def expandable_blockquote(text: str) -> str:
+    """Collapsible/expandable blockquote — chhota dikhta hai, arrow (⌄) tap
+    karne par pura content expand hota hai (jaise screenshot ke 'MELODY'
+    details box mein dikha tha)."""
+    return f"<blockquote expandable>{text}</blockquote>"
+
+
 def format_uptime(seconds) -> str:
     """Seconds ko 'ʜʜ:ᴍᴍ:ss' jaisa smallcaps uptime string banata hai
     (jaise '12ʜ:4ᴍ:10s') — Now Playing/group start message ke liye."""
@@ -103,3 +108,4 @@ def format_uptime(seconds) -> str:
     h, rem = divmod(max(seconds, 0), 3600)
     m, s = divmod(rem, 60)
     return f"{h}ʜ:{m}ᴍ:{s}s"
+        
