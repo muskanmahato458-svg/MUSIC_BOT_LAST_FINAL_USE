@@ -16,7 +16,7 @@ from clients import LOGGER
 from helpers import format_duration
 
 UPDATE_INTERVAL = 10          # seconds — Telegram flood-wait se bachne ke liye itna safe hai
-BAR_LENGTH = 10                # chhota rakha hai taaki progress button text ke line se lamba na nikle
+BAR_LENGTH = 12
 FILLED_CHAR = "▰"
 EMPTY_CHAR = "▱"
 MAX_EDIT_FAILURES = 3         # itni baar edit fail hone par task khud band ho jaata hai
@@ -66,6 +66,21 @@ def replay(chat_id: int):
         p["paused_total"] = 0.0
 
 
+def seek_to(chat_id: int, new_elapsed: float):
+    """Bar ko manually kisi specific position par le jaata hai (+15/-15 seek
+    button ke liye) — chahe abhi playing ho ya paused, dono cases handle
+    karta hai."""
+    p = _progress.get(chat_id)
+    if not p:
+        return
+    new_elapsed = max(0.0, new_elapsed)
+    if p["paused_at"] is not None:
+        p["start"] = p["paused_at"] - new_elapsed
+    else:
+        p["start"] = _now() - new_elapsed
+    p["paused_total"] = 0.0
+
+
 def elapsed(chat_id: int) -> float:
     """Ab tak kitna waqt beet gaya (seconds mein), pause ka time ginte hue nahi."""
     p = _progress.get(chat_id)
@@ -96,14 +111,6 @@ def render_bar(elapsed_sec: float, total_sec: int) -> str:
     return f"`{format_duration(int(elapsed_sec))}` {bar} `{format_duration(int(total_sec))}`"
 
 
-
-def render_button_bar(elapsed_sec: float, total_sec: int) -> str:
-    total_sec = max(total_sec, 1)
-    ratio = min(max(elapsed_sec / total_sec, 0.0), 1.0)
-    filled = int(round(ratio * BAR_LENGTH))
-    bar = FILLED_CHAR * filled + EMPTY_CHAR * (BAR_LENGTH - filled)
-    return f"{format_duration(int(elapsed_sec))} {bar} {format_duration(int(total_sec))}"
-
 def start_updater(chat_id: int, message, caption_fn, markup_fn, video_id: str, total_sec: int):
     """
     Background task chalu karta hai jo har UPDATE_INTERVAL seconds baad
@@ -130,8 +137,8 @@ def start_updater(chat_id: int, message, caption_fn, markup_fn, video_id: str, t
 
                 el = min(elapsed(chat_id), total_sec)
                 try:
-                    text = caption_fn()
-                    await message.edit_caption(text, reply_markup=markup_fn(el, total_sec))
+                    text = f"{caption_fn()}\n\n{render_bar(el, total_sec)}"
+                    await message.edit_caption(text, reply_markup=markup_fn())
                     failures = 0
                 except Exception as e:
                     if "MESSAGE_NOT_MODIFIED" in str(e):
@@ -148,3 +155,4 @@ def start_updater(chat_id: int, message, caption_fn, markup_fn, video_id: str, t
             pass
 
     _tasks[chat_id] = asyncio.create_task(_runner())
+      
