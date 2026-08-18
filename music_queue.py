@@ -13,6 +13,13 @@ _now_playing: dict[int, dict] = {}
 # chat_id -> "playing" | "paused"
 _state: dict[int, str] = {}
 
+# chat_id -> autoplay on/off (⚙️ More Settings -> Toggle Autoplay button ke liye)
+_autoplay: dict[int, bool] = {}
+
+# chat_id -> recently played video_ids (autoplay same gaana dobara na chune isliye)
+_recent: dict[int, list] = {}
+_RECENT_LIMIT = 15
+
 
 def get_queue(chat_id: int) -> list:
     return _queues.setdefault(chat_id, [])
@@ -62,3 +69,32 @@ def clear(chat_id: int):
     _queues.pop(chat_id, None)
     _now_playing.pop(chat_id, None)
     _state.pop(chat_id, None)
+    _recent.pop(chat_id, None)
+    # NOTE: autoplay preference jaanbujh kar clear nahi hoti (/stop ke baad
+    # bhi yaad rehti hai, taaki har baar dobara ON na karna pade)
+
+
+def set_autoplay(chat_id: int, value: bool):
+    _autoplay[chat_id] = bool(value)
+
+
+def get_autoplay(chat_id: int) -> bool:
+    return _autoplay.get(chat_id, False)
+
+
+def remember_played(chat_id: int, video_id):
+    """Autoplay ke liye — recently played video_ids yaad rakhta hai taaki
+    turant wahi gaana dobara suggest na ho."""
+    if not video_id:
+        return
+    hist = _recent.setdefault(chat_id, [])
+    if video_id in hist:
+        hist.remove(video_id)
+    hist.append(video_id)
+    if len(hist) > _RECENT_LIMIT:
+        del hist[: len(hist) - _RECENT_LIMIT]
+
+
+def recent_played(chat_id: int) -> list:
+    return list(_recent.get(chat_id, []))
+    
