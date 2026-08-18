@@ -39,6 +39,37 @@ async def search_track(query: str):
     }
 
 
+async def search_related_track(seed_title: str, exclude_ids=None):
+    """
+    Autoplay ke liye — pichhle gaane ke title se milta-julta agla gaana
+    dhoondta hai (recent history mein na ho aisa pehla result). Related-video
+    API na hone ki wajah se yeh seed title ko hi query ki tarah use karta hai.
+    """
+    exclude_ids = set(exclude_ids or [])
+    loop = asyncio.get_event_loop()
+
+    def _search():
+        try:
+            return YoutubeSearch(seed_title, max_results=8).to_dict()
+        except Exception:
+            return []
+
+    results = await loop.run_in_executor(None, _search)
+    for r in results:
+        video_id = r.get("id")
+        if not video_id or video_id in exclude_ids:
+            continue
+        thumbnails = r.get("thumbnails") or []
+        return {
+            "id": video_id,
+            "title": r.get("title", "Unknown"),
+            "duration": r.get("duration", ""),
+            "thumbnail": thumbnails[0] if thumbnails else None,
+            "url": f"https://www.youtube.com/watch?v={video_id}",
+        }
+    return None
+
+
 async def get_stream_url(video_id: str) -> str:
     """
     ShrutiAPI se direct audio stream URL nikalta hai.
@@ -77,3 +108,4 @@ async def get_stream_url(video_id: str) -> str:
                     return file_path
 
             raise Exception(f"API ne unexpected response diya: {resp.status}")
+            
