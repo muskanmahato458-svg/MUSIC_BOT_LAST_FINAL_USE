@@ -11,7 +11,6 @@ import config
 import db
 import botstate
 from clients import bot, assistant, call_py, LOGGER
-from helpers import smallcaps_title
 
 # Handlers register karne ke liye import karna zaroori hai
 import play  # noqa: F401
@@ -57,15 +56,16 @@ async def register_bot_commands():
     try:
         await bot.set_bot_commands(
             [
-                BotCommand("start", smallcaps_title("start the bot")),
-                BotCommand("play", smallcaps_title("play a song")),
-                BotCommand("skip", smallcaps_title("skip the track")),
-                BotCommand("pause", smallcaps_title("pause playback")),
-                BotCommand("resume", smallcaps_title("resume playback")),
-                BotCommand("stop", smallcaps_title("stop and leave")),
-                BotCommand("reload", smallcaps_title("refresh the bot (admin only)")),
-                BotCommand("help", smallcaps_title("show available commands")),
-                BotCommand("id", smallcaps_title("show your/group id")),
+                BotCommand("start", "Bot ko start karo"),
+                BotCommand("play", "Gaana bajao"),
+                BotCommand("skip", "Agla gaana"),
+                BotCommand("pause", "Pause karo"),
+                BotCommand("resume", "Resume karo"),
+                BotCommand("stop", "Band karo"),
+                BotCommand("reload", "Bot ko refresh karo (admin only)"),
+                BotCommand("restrict", "Reply karke user ko restrict karo (admin only)"),
+                BotCommand("unrestrict", "Reply karke restriction hatao (admin only)"),
+                BotCommand("id", "Apni/group ki ID dekho"),
             ]
         )
     except Exception as e:
@@ -100,14 +100,6 @@ async def _run_once():
         LOGGER.info(f"✅ Bot status loaded: {'ON' if botstate.is_enabled() else 'OFF'}")
     except Exception as e:
         LOGGER.warning(f"Bot status load nahi ho paya, default ON rakh rahe hain: {e}")
-
-    # Owner ke /processingon /processingoff se pichhli baar jo status set
-    # kiya tha, wahi load karo
-    try:
-        botstate.set_processing_text_enabled(await db.get_processing_text_status())
-        LOGGER.info(f"✅ Processing text status loaded: {'ON' if botstate.is_processing_text_enabled() else 'OFF'}")
-    except Exception as e:
-        LOGGER.warning(f"Processing text status load nahi ho paya, default ON rakh rahe hain: {e}")
 
     await register_bot_commands()
 
@@ -153,3 +145,4 @@ async def main():
 if __name__ == "__main__":
     threading.Thread(target=run_web, daemon=True).start()
     asyncio.get_event_loop().run_until_complete(main())
+                
