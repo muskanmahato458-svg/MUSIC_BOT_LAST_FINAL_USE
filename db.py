@@ -3,11 +3,11 @@ from clients import db, LOGGER
 users_col = db["users"]
 chats_col = db["chats"]
 settings_col = db["settings"]
+restricted_col = db["restricted"]
 
 START_MEDIA_KEY = "start_media"
 GROUP_START_MEDIA_KEY = "group_start_media"
 BOT_STATUS_KEY = "bot_status"
-PROCESSING_TEXT_KEY = "processing_text_status"
 
 
 async def add_user(user_id: int):
@@ -129,26 +129,36 @@ async def get_bot_status() -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Processing text ON/OFF status (owner: /processingon /processingoff) —
-# restart ke baad bhi yaad rehta hai, kyunki yeh DB mein persist hota hai.
+# /restrict /unrestrict — group admin/owner kisi user ko group ke andar
+# bot ke sabhi commands use karne se rok sakte hain ("banned from admin").
 # ---------------------------------------------------------------------------
-async def set_processing_text_status(is_on: bool):
+def _restrict_id(chat_id: int, user_id: int) -> str:
+    return f"{chat_id}:{user_id}"
+
+
+async def restrict_user(chat_id: int, user_id: int):
     try:
-        await settings_col.update_one(
-            {"_id": PROCESSING_TEXT_KEY},
-            {"$set": {"is_on": is_on}},
+        await restricted_col.update_one(
+            {"_id": _restrict_id(chat_id, user_id)},
+            {"$set": {"chat_id": chat_id, "user_id": user_id}},
             upsert=True,
         )
     except Exception as e:
-        LOGGER.warning(f"set_processing_text_status DB error: {e}")
+        LOGGER.warning(f"restrict_user DB error: {e}")
 
 
-async def get_processing_text_status() -> bool:
+async def unrestrict_user(chat_id: int, user_id: int):
     try:
-        doc = await settings_col.find_one({"_id": PROCESSING_TEXT_KEY})
-        if doc is None:
-            return True
-        return bool(doc.get("is_on", True))
+        await restricted_col.delete_one({"_id": _restrict_id(chat_id, user_id)})
     except Exception as e:
-        LOGGER.warning(f"get_processing_text_status DB error: {e}")
-        return True
+        LOGGER.warning(f"unrestrict_user DB error: {e}")
+
+
+async def is_restricted(chat_id: int, user_id: int) -> bool:
+    try:
+        doc = await restricted_col.find_one({"_id": _restrict_id(chat_id, user_id)})
+        return doc is not None
+    except Exception as e:
+        LOGGER.warning(f"is_restricted DB error: {e}")
+        return False
+            
